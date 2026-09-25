@@ -1,0 +1,25 @@
+```json
+{
+  "name": "customer-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/main.js",
+    "dev": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@langchain/core": "^0.3.0",
+    "@langchain/langgraph": "^0.2.0",
+    "@langchain/openai": "^0.3.0",
+    "kafkajs": "^2.2.4",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
+```
