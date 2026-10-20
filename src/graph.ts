@@ -1,8 +1,8 @@
-```typescript
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
+import { shouldEscalate } from "./decision.js";
 
 const CustomerState = z.object({
   customerId: z.string(),
@@ -42,10 +42,7 @@ async function analyzeSentiment(state: CustomerStateType) {
 }
 
 async function decideAction(state: CustomerStateType) {
-  const escalate =
-    state.sentiment === "urgente" ||
-    state.sentiment === "negativo" ||
-    state.intent === "cancelacion";
+  const escalate = shouldEscalate(state);
 
   const prompt = `Intención: ${state.intent}
 Sentimiento: ${state.sentiment}
@@ -87,4 +84,3 @@ export function buildCustomerGraph() {
 }
 
 export const customerGraph = buildCustomerGraph();
-```
