@@ -25,4 +25,8 @@ jobs:
         run: pip install -r requirements.txt || true
       - name: Instalar y compilar Node
         if: hashFiles('**/package.json') != ''
-        run: npm ci --if-present || npm install --if-present
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Tests
+        run: npm test
+      - name: Build
+        run: npm run build
