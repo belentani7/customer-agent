@@ -22,7 +22,7 @@ jobs:
           node-version: '20'
       - name: Instalar y compilar Python
         if: hashFiles('**/requirements.txt') != ''
-        run: pip install -r requirements.txt || true
+        run: pip install -r requirements.txt
       - name: Instalar y compilar Node
         if: hashFiles('**/package.json') != ''
         run: npm install --legacy-peer-deps --no-audit --no-fund
