@@ -1,4 +1,3 @@
-```typescript
 import { Kafka, logLevel } from "kafkajs";
 import { customerGraph, CustomerStateType } from "./graph.js";
 
@@ -79,4 +78,3 @@ run().catch((err) => {
   console.error("[customer-agent] fatal", err);
   process.exit(1);
 });
-```
