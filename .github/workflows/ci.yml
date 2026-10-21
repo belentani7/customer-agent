@@ -19,10 +19,16 @@ jobs:
         if: hashFiles('**/package.json') != ''
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: Instalar y compilar Python
         if: hashFiles('**/requirements.txt') != ''
         run: pip install -r requirements.txt || true
       - name: Instalar y compilar Node
         if: hashFiles('**/package.json') != ''
-        run: npm ci --if-present || npm install --if-present
+        run: npm install --no-audit --no-fund
+      - name: Comprobar tipos y fuentes
+        run: npm run check
+      - name: Ejecutar regresiones
+        run: npm test
+      - name: Compilar servicio
+        run: npm run build
