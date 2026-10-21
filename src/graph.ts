@@ -4,8 +4,8 @@ import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 
 export const CustomerState = z.object({
-  customerId: z.string(),
-  message: z.string(),
+  customerId: z.string().trim().min(1).max(128),
+  message: z.string().trim().min(1).max(10000),
   intent: z.string().optional(),
   sentiment: z.string().optional(),
   action: z.string().optional(),
