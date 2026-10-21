@@ -65,7 +65,8 @@ async function run() {
 
         console.log("[customer-agent] decision sent", { escalate: decision.escalate });
       } catch (err) {
-        console.error("[customer-agent] error processing", { type: err instanceof Error ? err.name : "Unknown" });
+        console.error("[customer-agent] processing failed; Kafka offset must remain retryable", { type: err instanceof Error ? err.name : "Unknown" });
+        throw err;
       }
     },
   });
@@ -82,6 +83,7 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 
 run().catch((err) => {
-  console.error("[customer-agent] fatal", err);
+  // Do not dump provider errors: they may contain keys, prompts or customer PII.
+  console.error("[customer-agent] fatal", { type: err instanceof Error ? err.name : "Unknown" });
   process.exit(1);
 });
