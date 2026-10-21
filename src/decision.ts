@@ -6,7 +6,8 @@ export interface DecisionSignals {
 }
 
 export function shouldEscalate({ intent, sentiment }: DecisionSignals): boolean {
-  return sentiment === "urgente" || sentiment === "negativo" || intent === "cancelacion";
+  return sentiment === "urgente" || sentiment === "negativo" ||
+    intent === "cancelacion" || intent === "needs_review";
 }
 
 const decisionSchema = z.object({
@@ -54,4 +55,17 @@ export function enforceSafeDecision(decision: ValidatedDecision, flagged: boolea
     };
   }
   return { action: "responder", response: decision.response, escalate: false };
+}
+
+// Classifiers are also untrusted model output; never accept free-form labels.
+const intentCategories = new Set(["consulta", "queja", "cancelacion", "compra", "soporte_tecnico"]);
+const sentimentCategories = new Set(["positivo", "neutral", "negativo", "urgente"]);
+export function parseIntentLabel(value: unknown): string {
+  const label = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return intentCategories.has(label) ? label : "needs_review";
+}
+export function parseSentimentLabel(value: unknown): string {
+  const label = typeof value === "string" ? value.trim().toLowerCase() : "";
+  // Uncertain classifications need a human rather than silent auto-replies.
+  return sentimentCategories.has(label) ? label : "urgente";
 }
