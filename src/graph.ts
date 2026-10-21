@@ -1,18 +1,19 @@
-```typescript
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
 
-const CustomerState = z.object({
-  customerId: z.string(),
-  message: z.string(),
+export const CustomerState = z.object({
+  customerId: z.string().trim().min(1).max(128),
+  message: z.string().trim().min(1).max(10000),
   intent: z.string().optional(),
   sentiment: z.string().optional(),
   action: z.string().optional(),
   response: z.string().optional(),
   escalate: z.boolean().optional(),
 });
+
+export const CustomerPayload = CustomerState.pick({ customerId: true, message: true });
 
 export type CustomerStateType = z.infer<typeof CustomerState>;
 
@@ -87,4 +88,3 @@ export function buildCustomerGraph() {
 }
 
 export const customerGraph = buildCustomerGraph();
-```
