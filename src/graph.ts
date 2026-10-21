@@ -2,7 +2,7 @@ import { StateGraph, END, START } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
-import { parseAssistantDecision, shouldEscalate } from "./decision.js";
+import { enforceSafeDecision, parseAssistantDecision, shouldEscalate } from "./decision.js";
 
 const CustomerState = z.object({
   customerId: z.string(),
@@ -57,12 +57,8 @@ Decide la acción a tomar (responder, escalar, ofrecer_descuento, cerrar_ticket)
     new HumanMessage(prompt),
   ]);
 
-  const decision = parseAssistantDecision(String(res.content));
-  return {
-    action: decision.action,
-    response: decision.response,
-    escalate: escalate || !decision.valid,
-  };
+  const decision = enforceSafeDecision(parseAssistantDecision(String(res.content)), escalate);
+  return decision;
 }
 
 export function buildCustomerGraph() {
