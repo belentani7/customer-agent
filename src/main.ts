@@ -1,6 +1,5 @@
-```typescript
 import { Kafka, logLevel } from "kafkajs";
-import { customerGraph, CustomerStateType } from "./graph.js";
+import { customerGraph, CustomerPayload } from "./graph.js";
 
 const BROKERS = (process.env.KAFKA_BROKERS ?? "localhost:9092").split(",");
 const CLIENT_ID = process.env.KAFKA_CLIENT_ID ?? "customer-agent";
@@ -27,13 +26,19 @@ async function run() {
   await consumer.run({
     eachMessage: async ({ message }) => {
       const raw = message.value?.toString() ?? "{}";
-      let payload: CustomerStateType;
+      let value: unknown;
       try {
-        payload = JSON.parse(raw);
-      } catch (e) {
-        console.error("[customer-agent] invalid JSON", raw);
+        value = JSON.parse(raw);
+      } catch {
+        console.warn("[customer-agent] rejected malformed JSON");
         return;
       }
+      const validation = CustomerPayload.safeParse(value);
+      if (!validation.success) {
+        console.warn("[customer-agent] rejected invalid message schema");
+        return;
+      }
+      const payload = validation.data;
 
       try {
         const result = await customerGraph.invoke({
@@ -57,9 +62,9 @@ async function run() {
           messages: [{ key: result.customerId, value: JSON.stringify(decision) }],
         });
 
-        console.log("[customer-agent] decision sent", decision);
+        console.info("[customer-agent] decision sent");
       } catch (err) {
-        console.error("[customer-agent] error processing", err);
+        console.error("[customer-agent] error processing", err instanceof Error ? err.name : "unknown");
       }
     },
   });
@@ -79,4 +84,3 @@ run().catch((err) => {
   console.error("[customer-agent] fatal", err);
   process.exit(1);
 });
-```
