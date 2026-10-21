@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { shouldEscalate } from "../src/decision.ts";
+import { parseAssistantDecision, shouldEscalate } from "../src/decision.ts";
 import { customerRequestSchema } from "../src/request.ts";
 
 test("escalates urgent or negative sentiment", () => {
@@ -32,5 +32,30 @@ test("rejects empty, oversized or structurally unexpected customer messages", ()
   ];
   for (const input of cases) {
     assert.equal(customerRequestSchema.safeParse(input).success, false);
+  }
+});
+
+test("only allowlisted model actions are forwarded", () => {
+  const allowed = parseAssistantDecision(JSON.stringify({
+    action: "responder",
+    response: "Te ayudamos con tu consulta.",
+  }));
+  assert.deepEqual(allowed, { action: "responder", response: "Te ayudamos con tu consulta.", valid: true });
+});
+
+test("malformed or unsafe model output escalates with an approved response", () => {
+  const unsafe = [
+    "not JSON",
+    "null",
+    JSON.stringify({ action: "delete_customer", response: "done" }),
+    JSON.stringify({ action: "cerrar_ticket", response: 42 }),
+    JSON.stringify({ action: "responder", response: "x".repeat(4001) }),
+    JSON.stringify({ action: "responder", response: "OK", extra: "system_instruction" }),
+  ];
+  for (const message of unsafe) {
+    const parsed = parseAssistantDecision(message);
+    assert.equal(parsed.valid, false);
+    assert.equal(parsed.action, "escalar");
+    assert.equal(parsed.response, "Hemos recibido tu consulta. Nuestro equipo la revisará.");
   }
 });
