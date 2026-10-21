@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseAssistantDecision, shouldEscalate } from "../src/decision.ts";
+import { enforceSafeDecision, parseAssistantDecision, shouldEscalate } from "../src/decision.ts";
 import { customerRequestSchema } from "../src/request.ts";
 
 test("escalates urgent or negative sentiment", () => {
@@ -58,4 +58,43 @@ test("malformed or unsafe model output escalates with an approved response", () 
     assert.equal(parsed.action, "escalar");
     assert.equal(parsed.response, "Hemos recibido tu consulta. Nuestro equipo la revisará.");
   }
+});
+
+test("model-generated financial or destructive changes always escalate", () => {
+  for (const action of ["ofrecer_descuento", "cerrar_ticket"] as const) {
+    const decision = parseAssistantDecision(JSON.stringify({
+      action, response: "La operación se realizará automáticamente.",
+    }));
+    assert.deepEqual(enforceSafeDecision(decision, false), {
+      action: "escalar",
+      response: "Hemos recibido tu consulta. Nuestro equipo la revisará.",
+      escalate: true,
+    });
+  }
+});
+
+test("urgent and cancellation signals override a misleading model response", () => {
+  const proposed = parseAssistantDecision(JSON.stringify({
+    action: "responder", response: "Hemos cerrado tu incidencia.",
+  }));
+  assert.equal(shouldEscalate({ sentiment: "urgente" }), true);
+  assert.deepEqual(enforceSafeDecision(proposed, true), {
+    action: "escalar",
+    response: "Hemos recibido tu consulta. Nuestro equipo la revisará.",
+    escalate: true,
+  });
+});
+
+test("safe answer remains an ordinary reply and explicit escalation is respected", () => {
+  const answer = parseAssistantDecision(JSON.stringify({
+    action: "responder", response: "Consulta recibida.",
+  }));
+  assert.deepEqual(enforceSafeDecision(answer, false), {
+    action: "responder", response: "Consulta recibida.", escalate: false,
+  });
+  const manual = parseAssistantDecision(JSON.stringify({
+    action: "escalar", response: "Lo voy a pasar a otra persona.",
+  }));
+  assert.equal(enforceSafeDecision(manual, false).action, "escalar");
+  assert.equal(enforceSafeDecision(manual, false).escalate, true);
 });
