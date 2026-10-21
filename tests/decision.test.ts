@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { enforceSafeDecision, parseAssistantDecision, shouldEscalate } from "../src/decision.ts";
 import { customerRequestSchema } from "../src/request.ts";
 
@@ -97,4 +99,12 @@ test("safe answer remains an ordinary reply and explicit escalation is respected
   }));
   assert.equal(enforceSafeDecision(manual, false).action, "escalar");
   assert.equal(enforceSafeDecision(manual, false).escalate, true);
+});
+
+test("Kafka failure does not silently acknowledge lost decisions or leak raw exceptions", () => {
+  const source = readFileSync(join(process.cwd(), "src/main.ts"), "utf8");
+  assert.match(source, /processing failed; Kafka offset must remain retryable/);
+  assert.match(source, /throw err;/);
+  assert.doesNotMatch(source, /console\.error\("\[customer-agent\] fatal", err\)/);
+  assert.doesNotMatch(source, /console\.error\("\[customer-agent\] error processing", err\)/);
 });
