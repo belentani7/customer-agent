@@ -7,7 +7,7 @@
     "build": "tsc",
     "start": "node dist/main.js",
     "dev": "tsx src/main.ts",
-    "test": "tsx --test tests/decision.test.ts"
+    "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {
     "@langchain/core": "^0.3.0",
