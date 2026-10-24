@@ -1,8 +1,8 @@
-```typescript
 import { StateGraph, END, START } from "@langchain/langgraph";
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage } from "@langchain/core/messages";
 import { z } from "zod";
+import { enforceSafeDecision, parseAssistantDecision, parseIntentLabel, parseSentimentLabel, shouldEscalate } from "./decision.js";
 
 const CustomerState = z.object({
   customerId: z.string(),
@@ -28,7 +28,7 @@ async function classifyIntent(state: CustomerStateType) {
     ),
     new HumanMessage(state.message),
   ]);
-  return { intent: String(res.content).trim().toLowerCase() };
+  return { intent: parseIntentLabel(res.content) };
 }
 
 async function analyzeSentiment(state: CustomerStateType) {
@@ -38,14 +38,11 @@ async function analyzeSentiment(state: CustomerStateType) {
     ),
     new HumanMessage(state.message),
   ]);
-  return { sentiment: String(res.content).trim().toLowerCase() };
+  return { sentiment: parseSentimentLabel(res.content) };
 }
 
 async function decideAction(state: CustomerStateType) {
-  const escalate =
-    state.sentiment === "urgente" ||
-    state.sentiment === "negativo" ||
-    state.intent === "cancelacion";
+  const escalate = shouldEscalate(state);
 
   const prompt = `Intención: ${state.intent}
 Sentimiento: ${state.sentiment}
@@ -60,17 +57,8 @@ Decide la acción a tomar (responder, escalar, ofrecer_descuento, cerrar_ticket)
     new HumanMessage(prompt),
   ]);
 
-  let action = "responder";
-  let response = String(res.content);
-  try {
-    const parsed = JSON.parse(String(res.content));
-    action = parsed.action ?? action;
-    response = parsed.response ?? response;
-  } catch {
-    // fallback
-  }
-
-  return { action, response, escalate };
+  const decision = enforceSafeDecision(parseAssistantDecision(String(res.content)), escalate);
+  return decision;
 }
 
 export function buildCustomerGraph() {
@@ -87,4 +75,3 @@ export function buildCustomerGraph() {
 }
 
 export const customerGraph = buildCustomerGraph();
-```
